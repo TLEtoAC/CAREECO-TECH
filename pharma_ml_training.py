@@ -1,3 +1,4 @@
+from sklearn.metrics import classification_report, accuracy_score, f1_score, balanced_accuracy_score
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -66,18 +67,26 @@ class PharmaMLModel:
         print(f"Test set: {self.X_test.shape}")
 
     def train_random_forest(self):
-        """Train Random Forest"""
         print("Training Random Forest...")
-        rf_model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+        rf_model = RandomForestClassifier(
+            n_estimators=100,
+            random_state=42,
+            n_jobs=-1,
+            class_weight="balanced"
+        )
         rf_model.fit(self.X_train, self.y_train)
         self.models['Random Forest'] = rf_model
 
     def train_logistic_regression(self):
-        """Train Logistic Regression"""
         print("Training Logistic Regression...")
-        lr_model = LogisticRegression(random_state=42, max_iter=1000)
+        lr_model = LogisticRegression(
+            random_state=42,
+            max_iter=1000,
+            class_weight="balanced"
+        )
         lr_model.fit(self.X_train, self.y_train)
         self.models['Logistic Regression'] = lr_model
+
 
     def train_xgboost(self):
         """Train XGBoost with early stopping (using booster directly)"""
@@ -131,16 +140,31 @@ class PharmaMLModel:
             else:
                 y_pred = model.predict(self.X_test)
 
+            # Compute metrics
             accuracy = accuracy_score(self.y_test, y_pred)
-            results[model_name] = accuracy
+            f1_macro = f1_score(self.y_test, y_pred, average="macro")
+            balanced_acc = balanced_accuracy_score(self.y_test, y_pred)
 
+            results[model_name] = {
+                "accuracy": accuracy,
+                "f1_macro": f1_macro,
+                "balanced_acc": balanced_acc
+            }
+
+            # Print results
             print(f"Accuracy: {accuracy:.4f}")
+            print(f"F1-macro: {f1_macro:.4f}")
+            print(f"Balanced Accuracy: {balanced_acc:.4f}")
             print("\nClassification Report:")
             print(classification_report(self.y_test, y_pred, target_names=self.target_encoder.classes_))
 
-        best_model = max(results, key=results.get)
-        print(f"\n🏆 Best Model: {best_model} (Accuracy: {results[best_model]:.4f})")
+        # Pick best model by F1-macro instead of plain accuracy
+        best_model = max(results, key=lambda k: results[k]["f1_macro"])
+        print(f"\n🏆 Best Model (by F1-macro): {best_model} "
+            f"(F1-macro: {results[best_model]['f1_macro']:.4f}, "
+            f"Accuracy: {results[best_model]['accuracy']:.4f})")
         return results
+
 
 
     def feature_importance_xgboost(self):
