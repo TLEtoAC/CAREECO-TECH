@@ -52,6 +52,10 @@ venv.bak/
 *.joblib
 *.model
 
+# Large processed data files (can be regenerated)
+processed_pharma_data_full_processed.csv
+processed_pharma_data_features.csv
+
 # Generated visualizations (users can regenerate these)
 *.png
 *.jpg
