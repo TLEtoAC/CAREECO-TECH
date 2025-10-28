@@ -1,0 +1,112 @@
+MEDICINES TO TEST
+
+Paracetamol - Pain relief medicines
+Ceftriaxone - Antibiotic injections
+Azithromycin - Antibiotic tablets
+Amoxicillin - Antibiotic medicines
+Metformin - Diabetes medicines
+Atorvastatin - Cholesterol medicines
+Pantoprazole - Acid reducers
+Diclofenac - Anti-inflammatory medicines
+
+Specific Brand Names
+Crocin - Popular paracetamol brand
+Augmentin - Amoxicillin + Clavulanic acid
+Azee - Azithromycin brand
+Pantocid - Pantoprazole brand
+Volini - Pain relief gel
+Betadine - Antiseptic
+Dolo - Paracetamol brand
+Combiflam - Paracetamol + Ibuprofen
+
+By Medical Category
+Antibiotics:
+
+antibiotic
+cephalexin
+ciprofloxacin
+ofloxacin
+levofloxacin
+Pain Relief:
+
+ibuprofen
+aspirin
+tramadol
+ketorolac
+Diabetes:
+
+glimepiride
+insulin
+gliclazide
+Heart/BP:
+
+amlodipine
+losartan
+atenolol
+ramipril
+
+By Dosage
+500mg - Should find many medicines
+250mg - Common dosage
+100mg - Very common
+10mg - Small dose medicines
+50mg - Medium dose
+
+By Form
+tablet - Most common form
+capsule - Capsule medicines
+injection - Injectable medicines
+syrup - Liquid medicines
+cream - Topical applications
+drops - Eye/ear drops
+
+By Manufacturer
+Cipla - Major Indian pharma
+Sun Pharma - Large manufacturer
+Dr Reddy - Well-known brand
+Lupin - Pharmaceutical company
+Zydus - Healthcare company
+
+Combination Searches
+paracetamol 500mg
+ceftriaxone injection
+metformin tablet
+pantoprazole 40mg
+azithromycin 250mg
+
+Symptom-Based Searches
+fever - Should suggest paracetamol
+headache - Pain relief medicines
+infection - Antibiotics
+diabetes - Diabetes medicines
+acidity - Acid reducers
+blood pressure - BP medicines
+
+TESTING STRATEGY
+Test 1: Start Simple
+paracetamol - Should show multiple results
+tablet - Should show many tablet forms
+500mg - Should show various 500mg medicines
+Test 2: Try Specific Brands
+Crocin - Popular brand
+Augmentin - Antibiotic brand
+Pantocid - Acid reducer
+Test 3: Test Categories
+antibiotic - Should show various antibiotics
+injection - Should show injectable medicines
+syrup - Should show liquid medicines
+Test 4: Test Combinations
+paracetamol tablet - Specific form
+ceftriaxone injection - Specific antibiotic
+metformin 500mg - Specific diabetes medicine
+
+WHAT TO EXPECT
+High matches (90%+): Exact medicine names and active ingredients
+Medium matches (70-89%): Related medicines and combinations
+Lower matches (50-69%): Broader category matches
+Try these searches and tell me:
+
+Which ones show results vs "0 medicines found"
+What the confidence scores are
+If you see the actual medicine cards or just the count
+This will help us identify if it's a specific data issue or a general rendering problem! 

@@ -221,7 +221,12 @@ def main():
     preprocessor = PharmaDataPreprocessor()
     
     # Load data
-    df = preprocessor.load_data('c:/Users/LENOVO/Desktop/Projects/CAREECO/Stage1_Product_initial_dataset.csv')
+    # df = preprocessor.load_data('c:/Users/LENOVO/Desktop/Projects/CAREECO/Stage1_Product_initial_dataset.csv')
+   
+    # Updated version for files in the same folder
+    df = preprocessor.load_data('Stage1_Product_initial_dataset.csv')
+    ...
+
     
     # Display basic info
     preprocessor.basic_info()
@@ -238,8 +243,10 @@ def main():
     X = preprocessor.create_final_features()
     
     # Save processed data
-    preprocessor.save_processed_data('c:/Users/LENOVO/Desktop/Projects/CAREECO/processed_pharma_data.csv')
+    #preprocessor.save_processed_data('c:/Users/LENOVO/Desktop/Projects/CAREECO/processed_pharma_data.csv')
     
+    preprocessor.save_processed_data('processed_pharma_data.csv')
+
     # Print summary
     summary = preprocessor.get_preprocessing_summary()
     print("\n=== PREPROCESSING SUMMARY ===")

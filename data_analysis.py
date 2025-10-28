@@ -199,7 +199,10 @@ class PharmaDataAnalyzer:
 
 def main():
     # Initialize analyzer
-    analyzer = PharmaDataAnalyzer('c:/Users/LENOVO/Desktop/Projects/CAREECO/Stage1_Product_initial_dataset.csv')
+    #analyzer = PharmaDataAnalyzer('c:/Users/LENOVO/Desktop/Projects/CAREECO/Stage1_Product_initial_dataset.csv')
+
+    analyzer = PharmaDataAnalyzer('Stage1_Product_initial_dataset.csv')
+
     
     # Run all analyses
     analyzer.basic_statistics()
