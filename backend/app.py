@@ -4,22 +4,27 @@ import pandas as pd
 import numpy as np
 import pickle
 import os
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import re
+
+# Try to import enhanced search, fallback to simple version
+try:
+    from enhanced_search import EnhancedPharmaSearch
+    print("✅ Using full enhanced search with NLTK")
+except Exception as e:
+    print(f"⚠️ NLTK enhanced search failed: {e}")
+    print("📝 Using simple enhanced search without NLTK")
+    from simple_enhanced_search import SimpleEnhancedPharmaSearch as EnhancedPharmaSearch
 
 app = Flask(__name__)
 CORS(app)
 
 class PharmaAPI:
     def __init__(self):
-        self.df = None
-        self.tfidf_vectorizer = None
-        self.tfidf_matrix = None
+        self.enhanced_search = EnhancedPharmaSearch()
         self.load_data()
         
     def load_data(self):
-        """Load the pharmaceutical dataset"""
+        """Load the pharmaceutical dataset using enhanced search"""
         try:
             # Try multiple possible paths for the dataset
             possible_paths = [
@@ -29,107 +34,45 @@ class PharmaAPI:
                 os.path.join('..', 'Stage1_Product_initial_dataset.csv'),  # Using os.path
             ]
             
-            self.df = None
+            loaded = False
+            # Skip duplicates for faster startup during development
+            skip_duplicates = os.getenv('SKIP_DUPLICATES', 'false').lower() == 'true'
+            
             for path in possible_paths:
                 try:
                     if os.path.exists(path):
-                        self.df = pd.read_csv(path)
-                        print(f"✅ Successfully loaded {len(self.df)} medicines from: {path}")
-                        break
+                        loaded = self.enhanced_search.load_data(path, skip_duplicates=skip_duplicates)
+                        if loaded:
+                            print(f"✅ Successfully loaded enhanced search from: {path}")
+                            break
                 except Exception as path_error:
                     print(f"❌ Failed to load from {path}: {path_error}")
                     continue
             
-            if self.df is None:
+            if not loaded:
                 raise FileNotFoundError("Dataset file not found in any expected location")
-            
-            # Prepare text data for similarity search
-            self.prepare_search_data()
             
         except Exception as e:
             print(f"⚠️  Error loading data: {e}")
-            print("📝 Creating sample data for demonstration...")
-            # Create sample data if file not found
-            self.create_sample_data()
+            print("📝 Enhanced search initialization failed")
     
-    def create_sample_data(self):
-        """Create sample data for demonstration"""
-        sample_data = [
-            {
-                'medicine_name': 'Paracetamol 500mg Tablet 10 tablets',
-                'salt_composition': 'Paracetamol (500mg)',
-                'packagingType': 'strip or blister pack',
-                'pack': '10 tablets',
-                'marketed_by': 'Generic Pharma Ltd',
-                'gst': '12',
-                'manufactured_by': 'Generic Pharma Ltd'
-            },
-            {
-                'medicine_name': 'Aceper Tablet 10 tablets',
-                'salt_composition': 'Paracetamol (500mg) + Phenylpropanolamine (25mg) + Cetirizine (10mg)',
-                'packagingType': 'strip or blister pack',
-                'pack': '10 tablets',
-                'marketed_by': '3A Pharmaceuticals',
-                'gst': '12',
-                'manufactured_by': '3A Pharmaceuticals'
-            },
-            {
-                'medicine_name': 'Crocin 650mg Tablet 15 tablets',
-                'salt_composition': 'Paracetamol (650mg)',
-                'packagingType': 'strip or blister pack',
-                'pack': '15 tablets',
-                'marketed_by': 'GSK Pharmaceuticals',
-                'gst': '12',
-                'manufactured_by': 'GSK Pharmaceuticals'
-            }
-        ]
-        
-        self.df = pd.DataFrame(sample_data)
-        self.prepare_search_data()
-    
-    def prepare_search_data(self):
-        """Prepare data for text-based similarity search"""
-        # Combine relevant text fields for search
-        self.df['search_text'] = (
-            self.df['medicine_name'].fillna('') + ' ' +
-            self.df['salt_composition'].fillna('') + ' ' +
-            self.df['marketed_by'].fillna('')
-        ).str.lower()
-        
-        # Create TF-IDF matrix
-        self.tfidf_vectorizer = TfidfVectorizer(
-            max_features=5000,
-            stop_words='english',
-            ngram_range=(1, 2)
-        )
-        
-        self.tfidf_matrix = self.tfidf_vectorizer.fit_transform(self.df['search_text'])
-        print("TF-IDF matrix created for similarity search")
+
     
     def search_medicines(self, query, filters=None):
-        """Search medicines based on query and filters"""
+        """Search medicines using enhanced search with NLP and symptom support"""
         if not query.strip():
             return []
         
-        # Convert query to TF-IDF vector
-        query_vector = self.tfidf_vectorizer.transform([query.lower()])
-        
-        # Calculate similarity scores
-        similarity_scores = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
-        
-        # Get top matches
-        top_indices = similarity_scores.argsort()[-20:][::-1]
-        
-        results = []
-        for idx in top_indices:
-            if similarity_scores[idx] > 0.1:  # Minimum similarity threshold
-                medicine = self.df.iloc[idx].to_dict()
-                medicine['id'] = int(idx)
-                medicine['confidence'] = int(similarity_scores[idx] * 100)
-                
+        try:
+            # Use enhanced search
+            results = self.enhanced_search.enhanced_search(query, filters, top_k=20)
+            
+            # Process results for API response
+            processed_results = []
+            for medicine in results:
                 # Extract additional features
-                medicine['dosage'] = self.extract_dosage(medicine['medicine_name'])
-                medicine['ingredients_count'] = self.count_ingredients(medicine['salt_composition'])
+                medicine['dosage'] = self.extract_dosage(medicine.get('medicine_name', ''))
+                medicine['ingredients_count'] = self.count_ingredients(medicine.get('salt_composition', ''))
                 
                 # Clean up NaN values for JSON serialization
                 for key, value in medicine.items():
@@ -138,16 +81,13 @@ class PharmaAPI:
                     elif isinstance(value, (np.integer, np.floating)):
                         medicine[key] = value.item()
                 
-                results.append(medicine)
-        
-        # Apply filters
-        if filters:
-            results = self.apply_filters(results, filters)
-        
-        # Sort results
-        results = self.sort_results(results, filters.get('sortBy', 'relevance') if filters else 'relevance')
-        
-        return results[:10]  # Return top 10 results
+                processed_results.append(medicine)
+            
+            return processed_results[:10]  # Return top 10 results
+            
+        except Exception as e:
+            print(f"⚠️ Enhanced search failed: {e}")
+            return []
     
     def extract_dosage(self, medicine_name):
         """Extract dosage from medicine name"""
@@ -168,28 +108,7 @@ class PharmaAPI:
         # Count '+' symbols and add 1
         return str(composition).count('+') + 1
     
-    def apply_filters(self, results, filters):
-        """Apply filters to search results"""
-        filtered_results = results
-        
-        if filters.get('packagingType'):
-            filtered_results = [r for r in filtered_results if r.get('packagingType') == filters['packagingType']]
-        
-        if filters.get('manufacturer'):
-            filtered_results = [r for r in filtered_results if r.get('marketed_by') == filters['manufacturer']]
-        
-        return filtered_results
-    
-    def sort_results(self, results, sort_by):
-        """Sort results based on criteria"""
-        if sort_by == 'name':
-            return sorted(results, key=lambda x: x.get('medicine_name', ''))
-        elif sort_by == 'manufacturer':
-            return sorted(results, key=lambda x: x.get('marketed_by', ''))
-        elif sort_by == 'packaging':
-            return sorted(results, key=lambda x: x.get('packagingType', ''))
-        else:  # relevance (default)
-            return sorted(results, key=lambda x: x.get('confidence', 0), reverse=True)
+
     
     def get_recommendations(self, medicine_id):
         """Get similar medicines based on composition"""
@@ -261,17 +180,26 @@ def get_recommendations(medicine_id):
 
 @app.route('/api/analytics', methods=['GET'])
 def get_analytics():
-    """Get analytics data endpoint"""
+    """Get analytics data endpoint with enhanced search metrics"""
     try:
-        df = pharma_api.df
+        # Get enhanced search analytics
+        search_analytics = pharma_api.enhanced_search.get_search_analytics()
         
-        analytics = {
-            'totalMedicines': len(df),
-            'uniqueManufacturers': df['marketed_by'].nunique(),
-            'packagingTypes': df['packagingType'].nunique(),
-            'topManufacturers': df['marketed_by'].value_counts().head(10).to_dict(),
-            'packagingDistribution': df['packagingType'].value_counts().head(10).to_dict()
-        }
+        # Get basic dataset analytics
+        df = pharma_api.enhanced_search.df
+        if df is not None:
+            basic_analytics = {
+                'totalMedicines': len(df),
+                'uniqueManufacturers': df['marketed_by'].nunique(),
+                'packagingTypes': df['packagingType'].nunique(),
+                'topManufacturers': df['marketed_by'].value_counts().head(10).to_dict(),
+                'packagingDistribution': df['packagingType'].value_counts().head(10).to_dict()
+            }
+        else:
+            basic_analytics = {}
+        
+        # Combine analytics
+        analytics = {**basic_analytics, **search_analytics}
         
         return jsonify({
             'success': True,
@@ -284,16 +212,96 @@ def get_analytics():
             'error': str(e)
         }), 500
 
+@app.route('/api/suggestions/<query>', methods=['GET'])
+def get_suggestions(query):
+    """Get search suggestions for autocomplete"""
+    try:
+        # Simple suggestion logic based on medicine names
+        df = pharma_api.enhanced_search.df
+        if df is None:
+            return jsonify({'success': True, 'suggestions': []})
+        
+        query_lower = query.lower()
+        suggestions = []
+        
+        # Find medicines that start with or contain the query
+        for name in df['medicine_name'].dropna().unique():
+            if query_lower in str(name).lower():
+                suggestions.append(str(name))
+                if len(suggestions) >= 10:
+                    break
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions[:10]
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/duplicates', methods=['GET'])
+def get_duplicates():
+    """Get information about duplicate medicines"""
+    try:
+        duplicate_info = {
+            'total_groups': len(pharma_api.enhanced_search.duplicate_groups),
+            'groups': []
+        }
+        
+        # Get sample duplicate groups (limit to 10 for performance)
+        for rep_id, group_ids in list(pharma_api.enhanced_search.duplicate_groups.items())[:10]:
+            df = pharma_api.enhanced_search.df
+            group_medicines = []
+            
+            for med_id in group_ids:
+                medicine = df.iloc[med_id]
+                group_medicines.append({
+                    'id': med_id,
+                    'name': medicine['medicine_name'],
+                    'manufacturer': medicine['marketed_by']
+                })
+            
+            duplicate_info['groups'].append({
+                'representative_id': rep_id,
+                'medicines': group_medicines
+            })
+        
+        return jsonify({
+            'success': True,
+            'duplicates': duplicate_info
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    df = pharma_api.enhanced_search.df
     return jsonify({
         'success': True,
-        'message': 'PharmaCatalogue API is running',
-        'medicines_loaded': len(pharma_api.df) if pharma_api.df is not None else 0
+        'message': 'PharmaCatalogue API is running with Enhanced Search',
+        'medicines_loaded': len(df) if df is not None else 0,
+        'features': [
+            'Symptom-based search',
+            'Duplicate detection',
+            'NLP-based ranking',
+            'Query caching',
+            'Enhanced TF-IDF'
+        ]
     })
 
 if __name__ == '__main__':
     print("Starting PharmaCatalogue API...")
-    print(f"Loaded {len(pharma_api.df)} medicines")
+    df = pharma_api.enhanced_search.df
+    if df is not None:
+        print(f"Loaded {len(df)} medicines")
+    else:
+        print("No medicines loaded - using fallback mode")
     app.run(debug=True, host='0.0.0.0', port=5000)

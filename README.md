@@ -87,7 +87,11 @@ pharma-catalogue/
 - `venv/` - Python virtual environment
 - `build/` - Production build files
 - `*.png` - Generated visualization charts
+- `processed_pharma_data_*.csv` - Large processed datasets (73MB+ files)
 - `.env` - Environment variables
+
+### **⚠️ Large Files Notice:**
+The processed CSV files (`processed_pharma_data_*.csv`) are excluded from git due to GitHub's 100MB file size limit. Users can generate these files by running the preprocessing script.
 
 ## 🚀 Quick Start
 
@@ -143,10 +147,11 @@ The API will be available at `http://localhost:5000`
 
 ### Machine Learning Setup
 
-1. **Run data preprocessing**
+1. **Generate processed data files (Required for first run)**
    ```bash
    python preprocess_pharma_data.py
    ```
+   *This will create the large processed CSV files needed by the backend*
 
 2. **Train ML models**
    ```bash
@@ -157,6 +162,12 @@ The API will be available at `http://localhost:5000`
    ```bash
    python data_analysis.py
    ```
+
+### **📊 Data Processing Note**
+If you cloned this repository, you'll need to generate the processed data files first:
+- Run `python preprocess_pharma_data.py` to create processed datasets
+- This generates `processed_pharma_data_*.csv` files (excluded from git due to size)
+- The backend requires these files to function properly
 
 ## 📊 Dataset Information
 
